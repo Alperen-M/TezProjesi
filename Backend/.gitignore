@@ -1,0 +1,14 @@
+# Sanal ortamımız (Çok büyük, yüklenmemeli)
+# (Sizin klasör adınız .venv görünüyor, ikisini de yazalım)
+.venv/
+venv/
+
+# Gizli API anahtarlarımız. EN ÖNEMLİSİ!
+.env
+
+# Python'un otomatik oluşturduğu cache dosyaları
+__pycache__/
+*.pyc
+
+# VS Code ayar klasörü
+.vscode/
