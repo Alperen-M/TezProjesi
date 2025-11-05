@@ -2,9 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ✅ Konum izinleri (application dışında) -->
+    <!-- ✅ Konum izinleri -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -20,7 +21,7 @@
             android:value="AIzaSyDJ7P3YBueI12rW_usBOW--vukYPLHNA0U" />
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.gezginasistan.ui.theme.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,6 +29,5 @@
             </intent-filter>
         </activity>
     </application>
-
 
 </manifest>
