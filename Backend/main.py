@@ -153,7 +153,15 @@ def visit_place(
     db.commit()
     db.refresh(new_visit)
     return new_visit
-# ... üsttekiler kalsın ...
+# 6. Ziyaret Geçmişi
+@app.get("/places/history", response_model=list[schemas.VisitOut])
+def read_visit_history(
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    # Sadece giriş yapan kullanıcının ziyaretlerini getir
+    visits = db.query(models.Visit).filter(models.Visit.user_id == current_user.id).all()
+    return visits
 
 # 7. YAPAY ZEKA DESTEKLİ ÖNERİLER (FİNAL)
 @app.get("/recommendations/nearby")
