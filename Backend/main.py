@@ -132,3 +132,23 @@ def get_nearby_places(lat: float, lon: float, radius: int = 1500, type: str = "r
         return response.json()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# 5. ZİYARET ET (CHECK-IN) - SADECE GİRİŞ YAPANLAR!
+@app.post("/places/visit", response_model=schemas.VisitOut)
+def visit_place(
+    visit: schemas.VisitCreate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    # Yeni ziyaret kaydı oluştur
+    new_visit = models.Visit(
+        user_id=current_user.id, # Giriş yapmış kullanıcının ID'si
+        place_id=visit.place_id,
+        place_name=visit.place_name,
+        place_category=visit.place_category
+    )
+    
+    db.add(new_visit)
+    db.commit()
+    db.refresh(new_visit)
+    return new_visit

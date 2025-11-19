@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 # 1. Kayıt Olurken Gelen Veri
 class UserCreate(BaseModel):
@@ -24,3 +25,18 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+# 5. Ziyaret Ekleme (Kullanıcıdan Gelen Veri)
+class VisitCreate(BaseModel):
+    place_id: str
+    place_name: str
+    place_category: str
+
+# 6. Ziyaret Yanıtı (Kullanıcıya Döndüğümüz Veri)
+class VisitOut(VisitCreate):
+    id: int
+    created_at: datetime
+    user_id: int
+
+    class Config:
+        from_attributes = True
