@@ -40,3 +40,11 @@ class VisitOut(VisitCreate):
 
     class Config:
         from_attributes = True
+
+# 7. Tercih Belirleme (Kullanıcıdan Gelen)
+class PreferenceCreate(BaseModel):
+    categories: list[str] # Örn: ["museum", "cafe"]
+
+# 8. Tercih Yanıtı
+class PreferenceOut(BaseModel):
+    liked_categories: str

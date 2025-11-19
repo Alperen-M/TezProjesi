@@ -23,3 +23,13 @@ class Visit(Base):
     place_category = Column(String) # Kategori (Örn: restaurant, cafe)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now()) # Ne zaman gitti?
+    
+    # KULLANICI TERCİHLERİ (Soğuk Başlangıç İçin)
+class UserPreference(Base):
+    __tablename__ = "user_preferences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
+    # Örn: "museum", "park", "restaurant" gibi virgülle ayrılmış kelimeler tutacağız
+    liked_categories = Column(String)
