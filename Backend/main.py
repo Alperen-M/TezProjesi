@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, status
-from fastapi.security import OAuth2PasswordBearer # YENİ: Güvenlik için
+from fastapi.security import OAuth2PasswordBearer 
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -8,6 +8,7 @@ import models, schemas, database
 import requests
 import os
 from dotenv import load_dotenv
+import ai 
 
 load_dotenv()
 
@@ -152,3 +153,35 @@ def visit_place(
     db.commit()
     db.refresh(new_visit)
     return new_visit
+# ... üsttekiler kalsın ...
+
+# 7. YAPAY ZEKA DESTEKLİ ÖNERİLER (FİNAL)
+@app.get("/recommendations/nearby")
+def get_ai_recommendations(
+    lat: float, 
+    lon: float, 
+    radius: int = 1500, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+
+    # 1. Kullanıcının geçmişini veritabanından çek
+    user_history = db.query(models.Visit).filter(models.Visit.user_id == current_user.id).all()
+    
+    # 2. Google'dan etraftaki mekanları çek (Mevcut fonksiyonumuzu kullanalım)
+    # (Burada kod tekrarı yapmamak için yukarıdaki fonksiyonu çağırabiliriz ama
+    # şimdilik temiz olsun diye request atıyoruz, normalde fonksiyonu ayırmak daha iyidir)
+    url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+    params = {
+        "location": f"{lat},{lon}",
+        "radius": str(radius),
+        "type": "point_of_interest", # Her şeyi getirsin, sadece restoran değil
+        "key": GOOGLE_API_KEY
+    }
+    response = requests.get(url, params=params)
+    nearby_places = response.json().get("results", [])
+    
+    # 3. Yapay Zeka Motorunu Çalıştır
+    sorted_places = ai.generate_recommendations(user_history, nearby_places)
+    
+    return sorted_places
