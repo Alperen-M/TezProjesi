@@ -1,5 +1,6 @@
 package com.example.gezginasistan.ui
 
+import android.Manifest
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -9,13 +10,15 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.shouldShowRationale
 
 @OptIn(ExperimentalPermissionsApi::class)
-
 @Composable
 fun LocationPermissionRequest(
-    onPermissionGranted: @Composable () -> Unit
+    onPermissionGranted: @Composable () -> Unit,
+    onPermissionDenied: @Composable () -> Unit = {
+        Text("Konum izni reddedildi ❌")
+    }
 ) {
     val permissionState = rememberPermissionState(
-        android.Manifest.permission.ACCESS_FINE_LOCATION
+        Manifest.permission.ACCESS_FINE_LOCATION
     )
 
     LaunchedEffect(Unit) {
@@ -24,13 +27,13 @@ fun LocationPermissionRequest(
 
     when {
         permissionState.status.isGranted -> {
-            onPermissionGranted() // ✅ Artık burada Composable çağırabilirsin
+            onPermissionGranted()
         }
         permissionState.status.shouldShowRationale -> {
             Text("Konum izni gerekli, lütfen ayarlardan verin.")
         }
         else -> {
-            Text("Konum izni reddedildi ❌")
+            onPermissionDenied()
         }
     }
 }
