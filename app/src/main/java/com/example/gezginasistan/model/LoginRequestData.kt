@@ -1,6 +1,6 @@
 package com.example.gezginasistan.model
 
 data class LoginRequestData(
-    val username: String,
+    val email: String,
     val password: String
 )

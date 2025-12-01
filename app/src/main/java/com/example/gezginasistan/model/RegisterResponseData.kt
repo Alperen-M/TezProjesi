@@ -1,3 +1,4 @@
+
 package com.example.gezginasistan.model
 
 data class RegisterResponseData(

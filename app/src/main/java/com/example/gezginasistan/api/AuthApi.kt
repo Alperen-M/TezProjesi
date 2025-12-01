@@ -1,8 +1,8 @@
 package com.example.gezginasistan.api
 
+import com.example.gezginasistan.model.TokenResponseData
 import com.example.gezginasistan.model.RegisterRequestData
 import com.example.gezginasistan.model.RegisterResponseData
-import com.example.gezginasistan.model.TokenResponseData
 import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
