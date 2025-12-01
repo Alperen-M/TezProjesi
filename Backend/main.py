@@ -196,8 +196,10 @@ def read_visit_history(
     visits = db.query(models.Visit).filter(models.Visit.user_id == current_user.id).all()
     return visits
 
-# 8. AI ÖNERİLERİ
-@app.get("/recommendations/nearby", summary="AI Destekli Öneriler", description="Kullanıcının geçmişine ve tercihlerine göre kişiselleştirilmiş mekan önerileri sunar.")
+# ... importlar ve önceki kodlar ...
+
+# 7. YAPAY ZEKA DESTEKLİ ÖNERİLER (GÜNCELLENDİ - SADELEŞTİRİLDİ)
+@app.get("/recommendations/nearby", response_model=list[schemas.PlaceResponse], summary="AI Destekli Öneriler", description="Kullanıcıya özel sadeleştirilmiş mekan listesi döner.")
 def get_ai_recommendations(
     lat: float, 
     lon: float, 
@@ -205,13 +207,11 @@ def get_ai_recommendations(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # 1. Geçmişi Çek
+    # 1. Geçmişi ve Tercihleri Çek
     user_history = db.query(models.Visit).filter(models.Visit.user_id == current_user.id).all()
-    
-    # 2. Tercihleri Çek
     user_preferences = db.query(models.UserPreference).filter(models.UserPreference.user_id == current_user.id).first()
     
-    # 3. Google Verisi Çek
+    # 2. Google'dan Veriyi Çek
     url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
     params = {
         "location": f"{lat},{lon}",
@@ -220,9 +220,26 @@ def get_ai_recommendations(
         "key": GOOGLE_API_KEY
     }
     response = requests.get(url, params=params)
-    nearby_places = response.json().get("results", [])
+    nearby_places_raw = response.json().get("results", [])
     
-    # 4. AI Motoruna Gönder
-    sorted_places = ai.generate_recommendations(user_history, user_preferences, nearby_places)
+    # 3. AI Motoruna Gönder (Sıralama yapsın)
+    # (ai.py dosyasındaki fonksiyon raw data ile çalışıyor, o yüzden önce oraya gönderiyoruz)
+    sorted_places_raw = ai.generate_recommendations(user_history, user_preferences, nearby_places_raw)
     
-    return sorted_places
+    # 4. VERİYİ SADELEŞTİRME (TRANSFORMATION) - Arkadaşının İstediği Kısım
+    clean_places = []
+    for place in sorted_places_raw:
+        # Google'ın karmaşık yapısından verileri çekip kendi modelimize koyuyoruz
+        clean_place = schemas.PlaceResponse(
+            place_id=place.get("place_id"),
+            place_name=place.get("name"),
+            # Google'da koordinatlar geometry -> location altında durur
+            lat=place.get("geometry", {}).get("location", {}).get("lat"),
+            lon=place.get("geometry", {}).get("location", {}).get("lng"),
+            # Adres genellikle 'vicinity' alanındadır
+            address=place.get("vicinity", "Adres Yok"),
+            ai_score=place.get("ai_score", 0.0)
+        )
+        clean_places.append(clean_place)
+    
+    return clean_places

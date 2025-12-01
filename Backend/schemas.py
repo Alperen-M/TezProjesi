@@ -48,3 +48,12 @@ class PreferenceCreate(BaseModel):
 # 8. Tercih Yanıtı
 class PreferenceOut(BaseModel):
     liked_categories: str
+    
+ # 9. FRONTEND İÇİN ÖZEL SADELEŞTİRİLMİŞ MEKAN MODELİ (YENİ!)
+class PlaceResponse(BaseModel):
+    place_id: str
+    place_name: str
+    lat: float
+    lon: float
+    address: str
+    ai_score: float = 0.0 # AI Puanını da ekleyelim
