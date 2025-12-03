@@ -1,9 +1,11 @@
 package com.example.gezginasistan.model
 
-// Ana yanıt objesi
+import com.google.gson.annotations.SerializedName
+
 data class PlacesResponse(
-    val places: List<Place>,        // Mekan listesi
-    val total: Int? = null,         // Toplam sonuç sayısı (opsiyonel)
-    val status: String? = null,     // Backend'in döndüğü durum bilgisi (opsiyonel)
-    val error: String? = null       // Hata mesajı (opsiyonel)
+    // JSON'daki "results" anahtarını bizim "places" değişkenine bağlıyoruz
+    @SerializedName("results")
+    val places: List<Place>? = emptyList(),
+
+    val status: String? = null
 )

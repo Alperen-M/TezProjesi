@@ -6,9 +6,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
@@ -16,6 +19,7 @@ import com.example.gezginasistan.viewmodel.MapViewModel
 import com.example.gezginasistan.viewmodel.VisitUiState
 import com.example.gezginasistan.viewmodel.PlacesViewModel
 import com.example.gezginasistan.model.Place
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +33,10 @@ fun MapScreen(
 ) {
     val visitState = mapViewModel.visitState.collectAsState()
     val placesState = placesViewModel.places.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    // Kullanıcının haritada tıkladığı konumu tutan değişken
+    var clickedLocation by remember { mutableStateOf<LatLng?>(null) }
 
     val defaultPosition = LatLng(38.5, 27.7)
     val cameraPositionState = rememberCameraPositionState {
@@ -68,7 +76,7 @@ fun MapScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding) // ✅ innerPadding artık kullanılıyor
+                .padding(innerPadding)
         ) {
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
@@ -83,32 +91,40 @@ fun MapScreen(
                 properties = MapProperties(
                     isMyLocationEnabled = false,
                     isTrafficEnabled = false
-                )
+                ),
+                onMapClick = { latLng ->
+                    Log.d("MapScreen", "Haritaya tıklandı: ${latLng.latitude}, ${latLng.longitude}")
+                    clickedLocation = latLng
+                }
             ) {
-                // ✅ Yakındaki mekanlar
+                // --- Backend'den gelen mekanlar (Kırmızı Pinler) ---
                 placesState.value.forEach { place: Place ->
+                    // DÜZELTME: place.id yerine place.place_id kullanıyoruz.
+                    // Eğer place_id null gelirse hata vermemesi için varsayılan değer atıyoruz.
+                    val safeId = place.place_id ?: "unknown_id_${place.hashCode()}"
+
                     val markerState = rememberMarkerState(
-                        key = place.place_id ?: place.id.toString(),
+                        key = safeId,
                         position = LatLng(place.latitude, place.longitude)
                     )
 
                     Marker(
                         state = markerState,
                         title = place.name.ifBlank { "Bilinmeyen Mekan" },
-                        snippet = (place.category ?: "Kategori yok") + " • " + (place.address ?: "Adres yok"),
+                        snippet = (place.category) + " • " + (place.address ?: "Adres yok"),
                         onClick = {
-                            Log.d("MapScreen", "Marker tıklandı: ${place.name}")
+                            Log.d("MapScreen", "Mekan Marker tıklandı: ${place.name}")
                             mapViewModel.recordVisit(
-                                placeId = place.place_id ?: place.id.toString(),
+                                placeId = safeId,
                                 placeName = place.name,
-                                category = place.category ?: "unknown"
+                                category = place.category
                             )
-                            false // ✅ info window açılır
+                            false
                         }
                     )
                 }
 
-                // ✅ Recommendations’tan gelen seçili mekan marker’ı
+                // --- Önerilerden gelen seçili mekan ---
                 if (selectedLat != null && selectedLon != null) {
                     val selState = rememberMarkerState(
                         key = selectedPlaceId ?: "selected",
@@ -118,17 +134,54 @@ fun MapScreen(
                         state = selState,
                         title = selectedPlaceId ?: "Seçili Mekan",
                         snippet = "Önerilerden seçildi",
+                        icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN),
                         onClick = {
-                            Log.d("MapScreen", "Öneri marker tıklandı: $selectedPlaceId")
+                            Log.d("MapScreen", "Öneri marker tıklandı")
+                            false
+                        }
+                    )
+                }
+
+                // --- Kullanıcının elle tıkladığı yere koyulan Marker (Mavi) ---
+                clickedLocation?.let { location ->
+                    Marker(
+                        state = MarkerState(position = location),
+                        title = "Seçilen Konum",
+                        snippet = "${location.latitude}, ${location.longitude}",
+                        icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE),
+                        onClick = {
+                            Log.d("MapScreen", "Elle koyulan pine tıklandı")
                             false
                         }
                     )
                 }
             }
+
+            // "Burada Ara" Butonu
+            clickedLocation?.let { loc ->
+                Button(
+                    onClick = {
+                        Log.d("MapScreen", "Yeni konumda arama yapılıyor: ${loc.latitude}, ${loc.longitude}")
+                        placesViewModel.loadNearby(loc.latitude, loc.longitude)
+
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Bu konumdaki mekanlar getiriliyor...")
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 32.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("🔎 Burada Öneri Ara")
+                }
+            }
         }
     }
 
-    // ✅ VisitUiState kontrolü
+    // VisitUiState kontrolü
     when (val state = visitState.value) {
         VisitUiState.Idle -> Unit
         VisitUiState.Loading -> {

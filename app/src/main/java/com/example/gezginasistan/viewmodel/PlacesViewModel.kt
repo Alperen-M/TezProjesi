@@ -14,7 +14,6 @@ import kotlinx.coroutines.launch
 
 class PlacesViewModel : ViewModel() {
 
-    // ✅ Boş liste ile başlat -> null olmayacak
     private val _places = MutableStateFlow<List<Place>>(emptyList())
     val places: StateFlow<List<Place>> = _places
 
@@ -24,6 +23,7 @@ class PlacesViewModel : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    // Hata oluşursa çökmemesi için lazy veya init bloğunda kontrol edilebilir ama şimdilik kalsın
     private val placesApi: PlacesApi = RetrofitClient.create<PlacesApi>()
     private val gezginApi: GezginAsistanApi = RetrofitClient.create<GezginAsistanApi>()
 
@@ -31,21 +31,31 @@ class PlacesViewModel : ViewModel() {
         _loading.value = true
         _error.value = null
 
+        Log.d("PlacesVM", "İstek atılıyor: Lat:$lat Lon:$lon") // ✅ LOG 1
+
         viewModelScope.launch {
             try {
                 val response = placesApi.getNearbyPlaces(lat, lon)
-                // ✅ Null kontrolü
+
+                // ✅ LOG 2: Gelen ham veriyi kontrol et
+                Log.d("PlacesVM", "API Yanıtı Geldi. Liste Boyutu: ${response.places?.size}")
+
+                if (response.places.isNullOrEmpty()) {
+                    Log.w("PlacesVM", "UYARI: Gelen liste BOŞ! Modelde SerializedName hatası olabilir.")
+                }
+
                 _places.value = response.places ?: emptyList()
+
             } catch (e: Exception) {
-                _error.value = "İstek sırasında hata: ${e.message}"
-                Log.e("PlacesVM", "Exception: ${e.message}", e)
+                _error.value = "Hata: ${e.localizedMessage}"
+                Log.e("PlacesVM", "API ÇAĞRISI HATASI", e) // ✅ LOG 3: Hata detayını gör
             } finally {
                 _loading.value = false
             }
         }
     }
 
-    // 🔹 Hafta 5: Öneri sistemi için yeni state
+    // ... diğer kodların aynı kalsın ...
     private val _recommendations = MutableStateFlow<List<PlaceResponseData>>(emptyList())
     val recommendations: StateFlow<List<PlaceResponseData>> = _recommendations
 
@@ -56,11 +66,11 @@ class PlacesViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoadingRecommendations.value = true
             try {
-                // ✅ Doğru endpoint: /recommendations/nearby
                 val result = gezginApi.getRecommendationsNearby()
+                Log.d("PlacesVM", "Öneriler geldi: ${result.size} adet")
                 _recommendations.value = result
             } catch (e: Exception) {
-                Log.e("PlacesVM", "Öneri isteğinde hata: ${e.message}", e)
+                Log.e("PlacesVM", "Öneri Hatası", e)
                 _recommendations.value = emptyList()
             } finally {
                 _isLoadingRecommendations.value = false
